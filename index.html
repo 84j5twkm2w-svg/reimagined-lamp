@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>🥗 减脂晚餐转盘</title>
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22%E5%87%8F%E8%84%82%E6%99%9A%E9%A4%90%E8%BD%AC%E7%9B%98%22%2C%22short_name%22%3A%22%E6%99%9A%E9%A4%90%E8%BD%AC%E7%9B%98%22%2C%22start_url%22%3A%22.%2F%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f9f6f0%22%2C%22theme_color%22%3A%22%236a9f7b%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%2520xmlns%253D'http%253A%2F%2Fwww.w3.org%2F2000%2Fsvg'%2520viewBox%253D'0%25200%2520100%2520100'%253E%253Ctext%2520y%253D'.9em'%2520font-size%253D'90'%253E%25F0%259F%25A5%2597%253C%2Ftext%253E%253C%2Fsvg%253E%22%2C%22sizes%22%3A%22100x100%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
+    <meta name="theme-color" content="#6a9f7b">
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(145deg, #f3efe8 0%, #f9f6f0 100%);
+            font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        .app {
+            max-width: 600px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 28px;
+        }
+        .title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #3e3a35;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .title span { font-size: 2.2rem; }
+
+        .module-selector {
+            display: flex;
+            background: rgba(255,255,255,0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 48px;
+            padding: 6px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+            gap: 4px;
+            border: 1px solid rgba(255,255,255,0.6);
+        }
+        .module-btn {
+            padding: 10px 22px;
+            border: none;
+            background: transparent;
+            border-radius: 32px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #5c554c;
+            cursor: pointer;
+            transition: all 0.25s;
+            white-space: nowrap;
+        }
+        .module-btn.active {
+            background: #6a9f7b;
+            color: white;
+            box-shadow: 0 4px 14px rgba(106,159,123,0.4);
+        }
+
+        .count-selector {
+            display: flex;
+            align-items: center;
+            background: rgba(255,255,255,0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 48px;
+            padding: 6px 10px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+            gap: 4px;
+            border: 1px solid rgba(255,255,255,0.6);
+        }
+        .count-label {
+            font-size: 0.85rem;
+            color: #5c554c;
+            padding: 0 8px;
+            font-weight: 500;
+        }
+        .count-btn {
+            width: 40px;
+            height: 36px;
+            border-radius: 28px;
+            border: 2px solid transparent;
+            background: transparent;
+            font-weight: 600;
+            color: #5c554c;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+        }
+        .count-btn.active {
+            background: #6a9f7b;
+            color: white;
+            border-color: #6a9f7b;
+            box-shadow: 0 4px 12px rgba(106,159,123,0.35);
+            transform: scale(1.06);
+        }
+
+        .wheel-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1/1;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+        canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            border-radius: 50%;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.1);
+        }
+        .pointer {
+            position: absolute;
+            top: -6px; left: 50%;
+            transform: translateX(-50%);
+            z-index: 20;
+            width: 28px; height: 28px;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .pointer::after {
+            content: '';
+            width: 0; height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 14px solid #e85d5d;
+            filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));
+        }
+        .center-display {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 26%; aspect-ratio: 1/1;
+            background: #fffefb;
+            border-radius: 50%;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.04), 0 10px 28px rgba(0,0,0,0.1);
+            border: 4px solid #e0d9ce;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 15;
+            transition: border-color 0.3s;
+        }
+        .center-emoji { font-size: 2.6rem; line-height: 1; }
+
+        .result-tag {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) translateY(-75px);
+            background: #3e3a35;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s;
+            z-index: 25;
+        }
+        .result-tag.show {
+            opacity: 1;
+            transform: translate(-50%, -50%) translateY(-85px);
+        }
+
+        .spin-btn {
+            background: #6a9f7b;
+            border: none;
+            color: white;
+            font-weight: 700;
+            font-size: 1.1rem;
+            padding: 14px 44px;
+            border-radius: 50px;
+            box-shadow: 0 10px 24px rgba(106,159,123,0.35);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .spin-btn:disabled {
+            background: #c2bdb2;
+            box-shadow: none;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .add-section {
+            width: 100%;
+            background: rgba(255,255,255,0.7);
+            backdrop-filter: blur(12px);
+            border-radius: 24px;
+            padding: 18px 16px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.04);
+            border: 1px solid rgba(255,255,255,0.6);
+        }
+        .add-title { font-weight: 700; color: #3e3a35; font-size: 0.95rem; }
+        .add-row { display: flex; gap: 8px; margin-top: 8px; }
+        .add-input {
+            flex: 1;
+            padding: 10px 14px;
+            border-radius: 18px;
+            border: 1px solid #ddd7cc;
+            background: white;
+            font-size: 0.9rem;
+        }
+        .add-btn {
+            background: #6a9f7b;
+            color: white;
+            border: none;
+            border-radius: 18px;
+            padding: 10px 20px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .ai-hint { font-size: 0.7rem; color: #8b857c; margin-top: 6px; }
+
+        .recipe-card {
+            width: 100%;
+            background: rgba(255,255,255,0.8);
+            backdrop-filter: blur(12px);
+            border-radius: 24px;
+            padding: 20px;
+            box-shadow: 0 10px 28px rgba(0,0,0,0.06);
+            display: none;
+            flex-direction: column;
+            gap: 16px;
+            border: 1px solid rgba(255,255,255,0.6);
+        }
+        .recipe-card.active { display: flex; }
+        .recipe-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #3e3a35;
+            text-align: center;
+            border-bottom: 2px solid #e7e0d5;
+            padding-bottom: 6px;
+        }
+        .recipe-section h4 { font-size: 0.9rem; color: #6a9f7b; margin-bottom: 4px; }
+        .recipe-section p {
+            font-size: 0.85rem;
+            color: #5e5750;
+            line-height: 1.7;
+            background: #faf8f5;
+            padding: 10px 14px;
+            border-radius: 16px;
+            white-space: pre-line;
+        }
+
+        .disabled-interaction { pointer-events: none; opacity: 0.6; }
+    </style>
+</head>
+<body>
+<div class="app">
+    <div class="title"><span>🥗</span> 减脂晚餐转盘</div>
+
+    <div class="module-selector" id="moduleSelector">
+        <button class="module-btn active" data-module="all">🌱 全部</button>
+        <button class="module-btn" data-module="carb">🍚 碳水</button>
+        <button class="module-btn" data-module="protein">🍗 蛋白质</button>
+        <button class="module-btn" data-module="vitamin">🥬 维生素</button>
+    </div>
+
+    <div class="count-selector" id="countSelector">
+        <span class="count-label">🍽️ 数量</span>
+        <button class="count-btn active" data-count="5">5</button>
+        <button class="count-btn" data-count="10">10</button>
+        <button class="count-btn" data-count="20">20</button>
+        <button class="count-btn" data-count="30">30</button>
+        <button class="count-btn" data-count="40">40</button>
+        <button class="count-btn" data-count="50">50</button>
+    </div>
+
+    <div class="wheel-container" id="wheelContainer">
+        <canvas id="wheelCanvas"></canvas>
+        <div class="pointer"></div>
+        <div class="result-tag" id="resultTag">🎯 准备转动</div>
+        <div class="center-display" id="centerDisplay">
+            <span class="center-emoji" id="centerEmoji">🎯</span>
+        </div>
+    </div>
+
+    <button class="spin-btn" id="spinBtn"><span>🎰</span> 开始旋转</button>
+
+    <div class="add-section">
+        <div class="add-title">✨ 自定义添加菜品 (AI自动归类)</div>
+        <div class="add-row">
+            <input type="text" class="add-input" id="newDishName" placeholder="输入菜名，如：凉拌鸡丝" maxlength="20">
+            <button class="add-btn" id="addDishBtn">➕ 添加</button>
+        </div>
+        <div class="ai-hint">🤖 系统会根据菜名自动判断碳水/蛋白质/维生素分类</div>
+    </div>
+
+    <div class="recipe-card" id="recipeCard">
+        <div class="recipe-title" id="recipeName"></div>
+        <div class="recipe-section">
+            <h4>🥬 备料</h4>
+            <p id="recipeIngredients"></p>
+        </div>
+        <div class="recipe-section">
+            <h4>🧂 调料</h4>
+            <p id="recipeSeasonings"></p>
+        </div>
+        <div class="recipe-section">
+            <h4>👨‍🍳 制作方法</h4>
+            <p id="recipeSteps"></p>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // ---------- 厨师级食谱生成函数 ----------
+        function generateRecipe(name, type) {
+            const recipes = {
+                // 碳水类
+                '杂粮饭': { ingredients:'糙米40g、小米30g、燕麦米30g', seasonings:'无', steps:'1. 所有杂粮洗净，用清水浸泡2小时。\n2. 沥干后加入1.5倍水，电饭煲杂粮模式煮熟。\n3. 煮好后翻松，再焖10分钟使口感更松软。' },
+                '蒸紫薯': { ingredients:'紫薯3个', seasonings:'无', steps:'1. 紫薯刷洗干净，不去皮。\n2. 冷水上锅，大火蒸25分钟至筷子轻松穿透。\n3. 取出即可食用。' },
+                '燕麦麸皮': { ingredients:'燕麦麸皮40g', seasonings:'无', steps:'1. 燕麦麸皮加入200ml沸水，搅拌。\n2. 小火煮2分钟至粘稠。\n3. 可根据喜好加入少许坚果碎。' },
+                '玉米窝头': { ingredients:'玉米面150g、黄豆面50g', seasonings:'小苏打少许', steps:'1. 两种面粉混合，加小苏打和温水揉成面团。\n2. 捏成窝头形状，放入蒸锅。\n3. 水开蒸20分钟即可。' },
+                '荞麦馒头': { ingredients:'荞麦粉200g、酵母3g', seasonings:'代糖5g', steps:'1. 酵母用温水化开，加入荞麦粉和代糖揉成光滑面团。\n2. 醒发至两倍大，揉匀排气，分割整形。\n3. 冷水上锅，蒸20分钟，关火焖3分钟。' },
+                '薏仁米饭': { ingredients:'薏仁30g、大米70g', seasonings:'无', steps:'1. 薏仁提前浸泡4小时。\n2. 与大米混合洗净，加适量水。\n3. 电饭煲正常煮饭模式。' },
+                '黑米糕': { ingredients:'黑米粉150g、糯米粉30g、鸡蛋2个', seasonings:'代糖20g', steps:'1. 鸡蛋加代糖打至发白。\n2. 筛入黑米粉和糯米粉，翻拌均匀。\n3. 倒入模具，蒸25分钟。' },
+                '山药饼': { ingredients:'山药200g、全麦粉50g', seasonings:'盐少许', steps:'1. 山药蒸熟压泥。\n2. 加入全麦粉和盐揉成面团。\n3. 分成小剂子，擀成饼，小火煎至两面金黄。' },
+                '南瓜饼': { ingredients:'南瓜泥150g、糯米粉80g', seasonings:'代糖10g', steps:'1. 南瓜泥与糯米粉、代糖混合揉团。\n2. 分成小球压扁。\n3. 不粘锅刷薄油，小火煎熟。' },
+                '小米糕': { ingredients:'小米粉150g、鸡蛋1个', seasonings:'代糖15g', steps:'1. 小米粉加鸡蛋、代糖、水调成糊。\n2. 倒入模具，蒸20分钟。' },
+                // 蛋白质类
+                '煎鸡胸': { ingredients:'鸡胸肉1块', seasonings:'盐、黑胡椒、料酒', steps:'1. 鸡胸肉横剖成两片，用刀背轻拍。\n2. 加料酒、盐、黑胡椒腌制15分钟。\n3. 不粘锅小火少油，每面煎3分钟至金黄熟透。' },
+                '烤鱼排': { ingredients:'龙利鱼排1片', seasonings:'盐、黑胡椒、柠檬', steps:'1. 鱼排吸干水分，抹盐、黑胡椒、柠檬汁。\n2. 烤箱预热200℃，烤12分钟。' },
+                '虾滑汤': { ingredients:'虾仁200g、蛋清1个、青菜', seasonings:'盐、白胡椒粉、淀粉', steps:'1. 虾仁剁成泥，加蛋清、淀粉、盐搅打上劲。\n2. 水烧开，用勺子舀入虾滑。\n3. 浮起后加入青菜，盐调味。' },
+                '牛肉片': { ingredients:'牛里脊150g', seasonings:'生抽、料酒、淀粉', steps:'1. 牛肉逆纹切薄片，加调料抓匀。\n2. 热锅凉油滑熟牛肉片盛出。\n3. 可搭配蔬菜快炒。' },
+                '豆腐炒蛋': { ingredients:'嫩豆腐150g、鸡蛋2个', seasonings:'盐、葱花', steps:'1. 豆腐捣碎，鸡蛋打散。\n2. 少油炒散鸡蛋，加入豆腐翻炒。\n3. 加盐和葱花炒匀。' },
+                '鸡肉肠': { ingredients:'鸡胸肉200g、玉米粒30g', seasonings:'盐、生抽、淀粉', steps:'1. 鸡胸肉绞成泥，加玉米粒和调料拌匀。\n2. 用保鲜膜卷成肠状。\n3. 蒸15分钟，切片食用。' },
+                '煎三文鱼': { ingredients:'三文鱼排', seasonings:'盐、黑胡椒、柠檬', steps:'1. 鱼排吸干，抹调料腌制。\n2. 小火每面煎3分钟。' },
+                '蛋饺': { ingredients:'鸡蛋3个、肉馅100g', seasonings:'盐、生抽', steps:'1. 鸡蛋打散，肉馅调味。\n2. 勺子刷油，舀蛋液摊皮，放肉馅。\n3. 对折成饺，蒸10分钟。' },
+                '清蒸鱼片': { ingredients:'鱼片200g、姜丝', seasonings:'蒸鱼豉油', steps:'1. 鱼片铺盘，放姜丝。\n2. 水开蒸6分钟，倒掉汁水。\n3. 淋豉油，浇热油。' },
+                '鸡丝拉皮': { ingredients:'鸡胸肉100g、拉皮150g', seasonings:'麻酱、生抽、醋', steps:'1. 鸡胸煮熟撕丝。\n2. 拉皮切条焯水。\n3. 麻酱调开，与鸡丝拉皮拌匀。' },
+                // 维生素类
+                '素炒三丝': { ingredients:'土豆、胡萝卜、青椒各1个', seasonings:'盐、蒜末', steps:'1. 全部切丝。\n2. 土豆丝泡水去淀粉。\n3. 热油爆香蒜末，下三丝快炒，盐调味。' },
+                '凉拌秋葵': { ingredients:'秋葵200g', seasonings:'生抽、芥末', steps:'1. 秋葵焯水2分钟，捞出过凉。\n2. 切去蒂，对半切开。\n3. 生抽加芥末调汁蘸食。' },
+                '蚝油菌菇': { ingredients:'蟹味菇、白玉菇各150g', seasonings:'蚝油、蒜', steps:'1. 菌菇去根洗净。\n2. 蒜末爆香，下菌菇翻炒至出水。\n3. 加蚝油炒匀收汁。' },
+                '蒜蓉丝瓜': { ingredients:'丝瓜2根', seasonings:'蒜末、盐', steps:'1. 丝瓜去皮切滚刀块。\n2. 蒜末爆香，下丝瓜翻炒。\n3. 加盐，炒至变软出水。' },
+                '醋溜白菜': { ingredients:'大白菜300g', seasonings:'醋、生抽、干辣椒', steps:'1. 白菜帮片薄，叶撕块。\n2. 干辣椒爆香，先下菜帮炒软。\n3. 加菜叶，淋醋和生抽快速翻炒。' },
+                '清炒芥蓝': { ingredients:'芥蓝250g', seasonings:'蒜、盐', steps:'1. 芥蓝去老皮，切段。\n2. 沸水加油焯1分钟。\n3. 蒜爆香，下芥蓝、盐快炒。' },
+                '上汤娃娃菜': { ingredients:'娃娃菜2棵、皮蛋1个', seasonings:'盐、高汤', steps:'1. 娃娃菜对半切，皮蛋切丁。\n2. 高汤煮开，放入娃娃菜煮软。\n3. 加皮蛋、盐调味。' },
+                '凉拌木耳': { ingredients:'泡发木耳150g', seasonings:'蒜末、醋、生抽、香油', steps:'1. 木耳撕小朵焯水。\n2. 加调料拌匀冷藏。' },
+                '素烧茄子': { ingredients:'茄子1个', seasonings:'生抽、蒜末', steps:'1. 茄子切条，蒸软。\n2. 少油炒蒜末，加茄子和生抽烧2分钟。' },
+                '白灼芥蓝': { ingredients:'芥蓝', seasonings:'蚝油、蒜', steps:'焯水淋蚝油蒜末。' },
+            };
+            if (recipes[name]) return recipes[name];
+            return {
+                ingredients: name + ' 适量主要食材',
+                seasonings: '盐、生抽等基础调料',
+                steps: '1. 食材清洗干净，切配好。\n2. 采用少油煎/炒/蒸/煮方式烹饪至熟。\n3. 加入调料调味，出锅享用。'
+            };
+        }
+
+        // ---------- 菜单数据库 (每类至少60种) ----------
+        const MENU_DB = [];
+        // 种子菜品
+        const seedMenus = [
+            { name:'藜麦牛油果沙拉', emoji:'🥑', type:'carb' },
+            { name:'南瓜小米粥', emoji:'🎃', type:'carb' },
+            { name:'紫薯蒸蛋', emoji:'🍠', type:'carb' },
+            { name:'魔芋丝拌菜', emoji:'🍜', type:'carb' },
+            { name:'蒸红薯配酸奶', emoji:'🍠', type:'carb' },
+            { name:'玉米胡萝卜汤', emoji:'🌽', type:'carb' },
+            { name:'鸡胸肉沙拉', emoji:'🥗', type:'protein' },
+            { name:'西兰花炒虾仁', emoji:'🥦', type:'protein' },
+            { name:'蒸鱼配蔬菜', emoji:'🐟', type:'protein' },
+            { name:'水煮鸡胸肉', emoji:'🍗', type:'protein' },
+            { name:'清蒸鲈鱼', emoji:'🐠', type:'protein' },
+            { name:'虾仁蔬菜卷', emoji:'🦐', type:'protein' },
+            { name:'番茄豆腐汤', emoji:'🍅', type:'vitamin' },
+            { name:'菌菇蔬菜汤', emoji:'🍄', type:'vitamin' },
+            { name:'凉拌黄瓜木耳', emoji:'🥒', type:'vitamin' },
+            { name:'菠菜拌豆腐', emoji:'🥬', type:'vitamin' },
+            { name:'番茄鸡蛋汤', emoji:'🍲', type:'vitamin' },
+            { name:'海带豆腐汤', emoji:'🫕', type:'vitamin' },
+        ];
+        seedMenus.forEach(m => {
+            MENU_DB.push({
+                ...m,
+                recipe: generateRecipe(m.name, m.type)
+            });
+        });
+
+        // 扩展菜单到每类60个 (无数字后缀)
+        const carbNames = ['杂粮饭','蒸紫薯','燕麦麸皮','玉米窝头','荞麦馒头','薏仁米饭','黑米糕','山药饼','南瓜饼','小米糕',
+            '红薯燕麦粥','紫薯山药饼','全麦吐司','糙米饭团','玉米发糕','小米南瓜糊','藜麦沙拉','蒸荔浦芋头',
+            '红豆薏米粥','绿豆小米粥','山药红枣粥','燕麦糙米饭','荞麦凉面','玉米饼','蒸土豆泥','魔芋豆腐',
+            '全麦卷饼','紫米发糕','小米粥','南瓜浓汤','蒸红薯','贝贝南瓜','鹰嘴豆泥','糙米寿司'];
+        const proteinNames = ['煎鸡胸','烤鱼排','虾滑汤','牛肉片','豆腐炒蛋','鸡肉肠','煎三文鱼','蛋饺','清蒸鱼片','鸡丝拉皮',
+            '彩椒炒鸡胸','口蘑炒鸡胸','柠檬烤鸡胸','菌菇鸡胸汤','芦笋炒虾仁','花菜炒虾仁','番茄炖牛腩','清蒸鳕鱼',
+            '鸡蛋豆腐羹','豆腐虾仁煲','番茄鱼片汤','芹菜炒牛肉','烤鸡腿','牛肉丸子汤','葱烧豆腐','酱牛肉',
+            '虾仁滑蛋','清蒸龙利鱼','三文鱼沙拉','鸡肉丸子','蛋皮肉卷','煎豆腐','烤虾','水煮鱼片'];
+        const vitaminNames = ['素炒三丝','凉拌秋葵','蚝油菌菇','蒜蓉丝瓜','醋溜白菜','清炒芥蓝','上汤娃娃菜','凉拌木耳','素烧茄子','白灼芥蓝',
+            '清炒时蔬','蒜蓉西兰花','西葫芦炒蛋','凉拌海带丝','芹菜香干','萝卜丝汤','烤蔬菜拼盘','苦瓜炒蛋',
+            '紫菜蛋花汤','凉拌豆芽','洋葱炒蛋','清炒豆苗','蒸茄子','白灼青菜','蚝油生菜','番茄西葫芦',
+            '蒜蓉空心菜','凉拌莴笋','清炒芦笋','白菜豆腐汤','拍黄瓜','香菇油菜','番茄菜花','素炒合菜'];
+        const pools = { carb: carbNames, protein: proteinNames, vitamin: vitaminNames };
+        const emojiMap = { carb: '🍚', protein: '🍗', vitamin: '🥬' };
+
+        ['carb','protein','vitamin'].forEach(cat => {
+            const existing = MENU_DB.filter(m => m.type === cat);
+            if (existing.length >= 60) return;
+            const need = 60 - existing.length;
+            const names = pools[cat];
+            for (let i = 0; i < need; i++) {
+                const name = names[i % names.length];
+                MENU_DB.push({
+                    name,
+                    emoji: emojiMap[cat],
+                    type: cat,
+                    recipe: generateRecipe(name, cat)
+                });
+            }
+        });
+
+        // AI分类
+        function classifyDish(name) {
+            const n = name.toLowerCase();
+            if (/米|面|粉|薯|芋|麦|粥|饭|饼|馒头|面包|吐司|玉米|小米|糙米|燕麦|荞麦|薏米|魔芋|山药|土豆|南瓜|红薯|紫薯/.test(n)) return 'carb';
+            if (/鸡|鸭|鱼|虾|蟹|贝|牛|猪|羊|蛋|豆腐|豆干|腐竹|肉|肝|腰|肠|丸/.test(n)) return 'protein';
+            return 'vitamin';
+        }
+
+        // DOM元素
+        const canvas = document.getElementById('wheelCanvas');
+        const ctx = canvas.getContext('2d');
+        const spinBtn = document.getElementById('spinBtn');
+        const resultTag = document.getElementById('resultTag');
+        const centerEmoji = document.getElementById('centerEmoji');
+        const centerDisplay = document.getElementById('centerDisplay');
+        const recipeCard = document.getElementById('recipeCard');
+        const recipeName = document.getElementById('recipeName');
+        const recipeIngredients = document.getElementById('recipeIngredients');
+        const recipeSeasonings = document.getElementById('recipeSeasonings');
+        const recipeSteps = document.getElementById('recipeSteps');
+        const moduleBtns = document.querySelectorAll('.module-btn');
+        const countBtns = document.querySelectorAll('.count-btn');
+        const addDishBtn = document.getElementById('addDishBtn');
+        const newDishName = document.getElementById('newDishName');
+        const moduleSelector = document.getElementById('moduleSelector');
+        const countSelector = document.getElementById('countSelector');
+        const wheelContainer = document.getElementById('wheelContainer');
+
+        let currentModule = 'all';
+        let currentCount = 5;
+        let currentMenus = [];
+        let rotationAngle = 0;
+        let isSpinning = false;
+        let animationId = null;
+
+        function filterMenus(module) {
+            return module === 'all' ? [...MENU_DB] : MENU_DB.filter(m => m.type === module);
+        }
+
+        function randomMenus(pool, count) {
+            return [...pool].sort(() => Math.random() - 0.5).slice(0, Math.min(count, pool.length));
+        }
+
+        function refreshMenus() {
+            const pool = filterMenus(currentModule);
+            currentMenus = randomMenus(pool, currentCount);
+            if (currentMenus.length < currentCount) {
+                currentCount = currentMenus.length;
+                updateCountButtons(currentCount);
+            }
+        }
+
+        function updateCountButtons(count) {
+            countBtns.forEach(b => b.classList.toggle('active', parseInt(b.dataset.count) === count));
+        }
+
+        function drawWheel(rotation = rotationAngle) {
+            const size = Math.min(canvas.width, canvas.height);
+            const cx = size/2, cy = size/2;
+            const outerR = size * 0.43, innerR = size * 0.16;
+            const cnt = currentMenus.length;
+            if (cnt === 0) { ctx.clearRect(0,0,size,size); return; }
+            const ang = (2*Math.PI)/cnt;
+            ctx.clearRect(0,0,size,size);
+            for (let i=0; i<cnt; i++) {
+                const start = rotation + i*ang;
+                const end = start + ang;
+                const mid = start + ang/2;
+                const hue = (i*47+180)%360;
+                ctx.beginPath();
+                ctx.moveTo(cx+innerR*Math.cos(start), cy+innerR*Math.sin(start));
+                ctx.lineTo(cx+outerR*Math.cos(start), cy+outerR*Math.sin(start));
+                ctx.arc(cx,cy,outerR,start,end);
+                ctx.lineTo(cx+innerR*Math.cos(end), cy+innerR*Math.sin(end));
+                ctx.arc(cx,cy,innerR,end,start,true);
+                ctx.closePath();
+                const grad = ctx.createRadialGradient(cx,cy,innerR,cx,cy,outerR);
+                grad.addColorStop(0,`hsl(${hue},40%,78%)`);
+                grad.addColorStop(1,`hsl(${hue},35%,65%)`);
+                ctx.fillStyle = grad;
+                ctx.fill();
+                ctx.strokeStyle = `hsl(${hue},30%,55%)`;
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+                const textR = innerR + (outerR-innerR)*0.62;
+                const tx = cx + textR*Math.cos(mid);
+                const ty = cy + textR*Math.sin(mid);
+                ctx.save();
+                ctx.translate(tx,ty);
+                ctx.rotate(mid);
+                const fontSize = cnt<=10?13:(cnt<=20?10.5:8);
+                ctx.font = `bold ${fontSize}px "PingFang SC","Microsoft YaHei",sans-serif`;
+                ctx.fillStyle = '#2a2620';
+                ctx.shadowColor = 'rgba(255,255,255,0.6)';
+                ctx.shadowBlur = 3;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                let text = currentMenus[i].name;
+                if (cnt>25 && text.length>4) text = text.slice(0,3)+'…';
+                ctx.fillText(text,0,0);
+                ctx.restore();
+            }
+            ctx.beginPath();
+            ctx.arc(cx,cy,innerR,0,2*Math.PI);
+            ctx.strokeStyle = '#d6cfc0';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        }
+
+        function getPointerIndex() {
+            const cnt = currentMenus.length;
+            if (!cnt) return -1;
+            const ang = (2*Math.PI)/cnt;
+            const pointer = -Math.PI/2;
+            let diff = ((pointer - rotationAngle) % (2*Math.PI) + 2*Math.PI) % (2*Math.PI);
+            return Math.floor(diff/ang) % cnt;
+        }
+
+        function updateCenter(menu) {
+            if (menu) {
+                centerEmoji.textContent = menu.emoji;
+                resultTag.textContent = '🍽️ ' + menu.name;
+                resultTag.classList.add('show');
+                centerDisplay.style.borderColor = '#b8d9be';
+            } else {
+                centerEmoji.textContent = '🎯';
+                resultTag.textContent = '🎯 准备转动';
+                resultTag.classList.remove('show');
+                centerDisplay.style.borderColor = '#e0d9ce';
+            }
+        }
+
+        function showRecipe(menu) {
+            if (!menu?.recipe) { recipeCard.classList.remove('active'); return; }
+            recipeName.textContent = menu.name;
+            recipeIngredients.textContent = menu.recipe.ingredients;
+            recipeSeasonings.textContent = menu.recipe.seasonings;
+            recipeSteps.textContent = menu.recipe.steps;
+            recipeCard.classList.add('active');
+            recipeCard.scrollIntoView({ behavior:'smooth', block:'nearest' });
+        }
+
+        function hideRecipe() { recipeCard.classList.remove('active'); }
+
+        function spin() {
+            if (isSpinning) return;
+            refreshMenus();
+            if (!currentMenus.length) return;
+            rotationAngle = Math.random() * 2*Math.PI;
+            drawWheel(rotationAngle);
+            isSpinning = true;
+            spinBtn.disabled = true;
+            hideRecipe();
+            updateCenter(null);
+            moduleSelector.classList.add('disabled-interaction');
+            countSelector.classList.add('disabled-interaction');
+
+            const cnt = currentMenus.length;
+            const ang = (2*Math.PI)/cnt;
+            const targetIdx = Math.floor(Math.random()*cnt);
+            const targetMid = targetIdx*ang + ang/2;
+            const pointer = -Math.PI/2;
+            const startRot = rotationAngle;
+            let needed = ((pointer - targetMid - startRot) % (2*Math.PI) + 2*Math.PI) % (2*Math.PI);
+            const extra = (6+Math.random()*4)*2*Math.PI;
+            const totalDelta = extra + needed;
+            const targetRot = startRot + totalDelta;
+            const duration = 4200 + Math.random()*1000;
+            const startTime = performance.now();
+            function easeOutCubic(t) { return 1-Math.pow(1-t,3); }
+            function animate(now) {
+                const elapsed = now - startTime;
+                const progress = Math.min(elapsed/duration, 1);
+                rotationAngle = startRot + totalDelta * easeOutCubic(progress);
+                drawWheel(rotationAngle);
+                if (progress < 1) {
+                    animationId = requestAnimationFrame(animate);
+                } else {
+                    rotationAngle = targetRot;
+                    drawWheel(rotationAngle);
+                    finishSpin();
+                }
+            }
+            animationId = requestAnimationFrame(animate);
+        }
+
+        function finishSpin() {
+            isSpinning = false;
+            animationId = null;
+            spinBtn.disabled = false;
+            moduleSelector.classList.remove('disabled-interaction');
+            countSelector.classList.remove('disabled-interaction');
+            const idx = getPointerIndex();
+            if (idx >= 0 && idx < currentMenus.length) {
+                updateCenter(currentMenus[idx]);
+                showRecipe(currentMenus[idx]);
+            } else {
+                updateCenter(null);
+                hideRecipe();
+            }
+        }
+
+        function resetWheel() {
+            if (isSpinning) return;
+            refreshMenus();
+            rotationAngle = Math.random()*2*Math.PI;
+            drawWheel(rotationAngle);
+            updateCenter(null);
+            hideRecipe();
+        }
+
+        addDishBtn.addEventListener('click', () => {
+            const name = newDishName.value.trim();
+            if (!name) return alert('请输入菜名');
+            const type = classifyDish(name);
+            MENU_DB.push({
+                name,
+                emoji: {carb:'🍚', protein:'🍗', vitamin:'🥬'}[type],
+                type,
+                recipe: generateRecipe(name, type)
+            });
+            newDishName.value = '';
+            alert(`已添加“${name}” → AI判断为【${type==='carb'?'碳水':type==='protein'?'蛋白质':'维生素'}】`);
+            if (currentModule==='all' || currentModule===type) resetWheel();
+        });
+
+        spinBtn.addEventListener('click', spin);
+        document.addEventListener('keydown', e => {
+            if (e.code==='Space' && !isSpinning && document.activeElement===document.body) {
+                e.preventDefault();
+                spin();
+            }
+        });
+
+        moduleBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (isSpinning) return;
+                const mod = btn.dataset.module;
+                if (mod===currentModule) return;
+                currentModule = mod;
+                moduleBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const pool = filterMenus(currentModule);
+                if (currentCount > pool.length) {
+                    currentCount = pool.length || 1;
+                    updateCountButtons(currentCount);
+                }
+                resetWheel();
+            });
+        });
+
+        countBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (isSpinning) return;
+                const cnt = parseInt(btn.dataset.count);
+                if (cnt===currentCount) return;
+                const pool = filterMenus(currentModule);
+                if (cnt > pool.length) {
+                    alert(`当前模块仅有 ${pool.length} 道菜，无法选 ${cnt} 个。`);
+                    return;
+                }
+                currentCount = cnt;
+                updateCountButtons(cnt);
+                resetWheel();
+            });
+        });
+
+        function resizeCanvas() {
+            const rect = wheelContainer.getBoundingClientRect();
+            const size = Math.min(rect.width, rect.height);
+            canvas.width = canvas.height = size;
+            drawWheel(rotationAngle);
+        }
+        window.addEventListener('resize', resizeCanvas);
+        if (window.ResizeObserver) new ResizeObserver(resizeCanvas).observe(wheelContainer);
+
+        // PWA Service Worker (安全注册)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('data:application/javascript,' + encodeURIComponent(
+                    "self.addEventListener('install',e=>{e.waitUntil(caches.open('v1').then(c=>c.addAll(['/']))) });" +
+                    "self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request))) });"
+                )).catch(() => {});
+            });
+        }
+
+        function init() {
+            currentModule = 'all';
+            currentCount = 5;
+            updateCountButtons(5);
+            document.querySelector('.module-btn[data-module="all"]').classList.add('active');
+            resizeCanvas();
+            resetWheel();
+        }
+        init();
+    })();
+</script>
+</body>
+</html>
